@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIP Academy — Training Management</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { margin-bottom: 0.25rem; }
+  .sub { color: #666; margin-top: 0; }
+  form { display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; }
+  input { flex: 1 1 200px; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+  button { padding: 0.5rem 1rem; border: 0; border-radius: 4px; background: #2563eb; color: #fff; cursor: pointer; font-size: 0.95rem; }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #e5e7eb; color: #111; }
+  button.secondary:hover { background: #d1d5db; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+  th { background: #f9fafb; font-size: 0.85rem; text-transform: uppercase; color: #555; }
+  .status { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+  .Pending { background: #fef3c7; color: #92400e; }
+  .Assigned { background: #dbeafe; color: #1e40af; }
+  .Completed { background: #d1fae5; color: #065f46; }
+  .empty { color: #888; font-style: italic; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>SIP Academy</h1>
+<p class="sub">Training Request Management</p>
+
+<form id="newRequest">
+  <input id="trainingName" placeholder="Training Name" required>
+  <input id="requestedBy" placeholder="Requested By" required>
+  <button type="submit">Save Request</button>
+</form>
+
+<table>
+  <thead>
+    <tr><th>ID</th><th>Training</th><th>Requested By</th><th>Status</th><th>Actions</th></tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+<p id="empty" class="empty" hidden>No training requests yet. Create one above.</p>
+
+<script>
+const STORAGE_KEY = 'sip-academy-requests';
+const STATUSES = ['Pending', 'Assigned', 'Completed'];
+
+let requests = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let nextId = requests.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+
+const rows = document.getElementById('rows');
+const empty = document.getElementById('empty');
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+}
+
+function render() {
+  rows.innerHTML = '';
+  empty.hidden = requests.length > 0;
+  for (const r of requests) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.id}</td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${escapeHtml(r.requestedBy)}</td>
+      <td><span class="status ${r.status}">${r.status}</span></td>
+      <td></td>
+    `;
+    const actions = tr.lastElementChild;
+    if (r.status === 'Pending') actions.appendChild(actionBtn('Mark Assigned', () => updateStatus(r.id, 'Assigned')));
+    if (r.status === 'Assigned') actions.appendChild(actionBtn('Mark Completed', () => updateStatus(r.id, 'Completed')));
+    rows.appendChild(tr);
+  }
+}
+
+function actionBtn(label, onClick) {
+  const b = document.createElement('button');
+  b.className = 'secondary';
+  b.textContent = label;
+  b.onclick = onClick;
+  return b;
+}
+
+function updateStatus(id, status) {
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  r.status = status;
+  save();
+  render();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.getElementById('newRequest').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = document.getElementById('trainingName').value.trim();
+  const requestedBy = document.getElementById('requestedBy').value.trim();
+  if (!name || !requestedBy) return;
+  requests.push({ id: nextId++, name, requestedBy, status: 'Pending' });
+  save();
+  render();
+  e.target.reset();
+  document.getElementById('trainingName').focus();
+});
+
+render();
+</script>
+</body>
+</html>
