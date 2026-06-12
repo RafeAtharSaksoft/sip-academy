@@ -13,6 +13,9 @@
   button:hover { background: #1d4ed8; }
   button.secondary { background: #e5e7eb; color: #111; }
   button.secondary:hover { background: #d1d5db; }
+  button.danger { background: #dc2626; color: #fff; }
+  button.danger:hover { background: #b91c1c; }
+  td .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
   th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; vertical-align: middle; }
   th { background: #f9fafb; font-size: 0.85rem; text-transform: uppercase; color: #555; }
@@ -65,21 +68,31 @@ function render() {
       <td>${escapeHtml(r.name)}</td>
       <td>${escapeHtml(r.requestedBy)}</td>
       <td><span class="status ${r.status}">${r.status}</span></td>
-      <td></td>
+      <td><div class="actions"></div></td>
     `;
-    const actions = tr.lastElementChild;
-    if (r.status === 'Pending') actions.appendChild(actionBtn('Mark Assigned', () => updateStatus(r.id, 'Assigned')));
-    if (r.status === 'Assigned') actions.appendChild(actionBtn('Mark Completed', () => updateStatus(r.id, 'Completed')));
+    const actions = tr.querySelector('.actions');
+    if (r.status === 'Pending') actions.appendChild(actionBtn('Mark Assigned', 'secondary', () => updateStatus(r.id, 'Assigned')));
+    if (r.status === 'Assigned') actions.appendChild(actionBtn('Mark Completed', 'secondary', () => updateStatus(r.id, 'Completed')));
+    actions.appendChild(actionBtn('Delete', 'danger', () => deleteRequest(r.id)));
     rows.appendChild(tr);
   }
 }
 
-function actionBtn(label, onClick) {
+function actionBtn(label, variant, onClick) {
   const b = document.createElement('button');
-  b.className = 'secondary';
+  b.className = variant;
   b.textContent = label;
   b.onclick = onClick;
   return b;
+}
+
+function deleteRequest(id) {
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`Delete training request "${r.name}"?`)) return;
+  requests = requests.filter(x => x.id !== id);
+  save();
+  render();
 }
 
 function updateStatus(id, status) {
